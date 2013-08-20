@@ -1,8 +1,11 @@
 package App::Betting::Toolkit::GameState;
 
 use 5.006;
+
 use strict;
 use warnings;
+
+use Data::Dumper;
 
 =head1 NAME
 
@@ -10,15 +13,16 @@ App::Betting::Toolkit::GameState - A GameState object for use with App::Betting:
 
 =head1 VERSION
 
-Version 0.02
+Version 0.03
 
 =cut
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 
 =head1 SYNOPSIS
 
+=over 1
 
 use App::Betting::Toolkit::GameState;
 
@@ -26,35 +30,297 @@ my $match = App::Betting::Toolkit::GameState->new();
 
 $match->name("Arsenal V Aston Villa");
 
+=back
+
 =head1 SUBROUTINES/METHODS
 
+=head2 new
 
+=over 1
 
-=head2 function1
+Create a new App::Betting::Toolkit::GameState object.
+
+Default object:
+
+=back
+
+	my $match = App::Betting::Toolkit::GameState->new();
+
+=over 1
+
+Object with required fields:
+
+=back
+
+	my $match = App::Betting::Toolkit::GameState->new( { 
+		required => qw(name) 
+	} );
+
+=over 1
+
+Object with auto validation (note validation would always return true here as there are no required fields):
+
+=back
+
+	my $match = App::Betting::Toolkit::GameState->new( { 
+		options => { autovalidate => 1 } 
+	} );
+
+=over 1
+
+Object with restricted flags, auto validation and required fields:
+
+=back
+
+	my $match = App::Betting::Toolkit::GameState->new( {
+		options		=>	{ autovalidate => 1 },
+		required	=>	[ qw(name time state) ],
+		restrict	=>	{
+			state	=>	[ qw(suspended active finished) ],
+		}
+	});
+
+=over 1
+
+New match objects ALWAYS start invalid.
+
+=back
 
 =cut
 
-sub function1 {
+sub new {
+        my $class = shift;
+
+	my $args = shift;
+
+	my $required	= [];
+	my $options	= {};
+	my $restrict	= {};
+
+	$options = $args->{options} if ( $args->{options} );
+	$restrict = $args->{restrict} if ( $args->{restrict} );
+	$required = $args->{required} if ( $args->{required} );
+
+        my $self = {
+		special			=>	{
+			version		=>	$VERSION,
+			localtime	=>	time,
+			valid		=>	0,
+		},
+		options			=>	$options,
+                required                =>      $required,
+		restrict		=>	$restrict,
+		var			=>	{},
+        };
+
+        bless $self, $class;
+    return $self;
 }
 
-=head2 function2
+=head2 load
+
+=over 1
+
+Load a App::Betting::Toolkit::GameState object from a scalar.
+
+=back
+
+	my $unblessedObject = someSouce();
+
+	my $match = App::Betting::Toolkit::GameState->load($unblessedObject);
 
 =cut
 
-sub function2 {
+sub load {
+        my $class = shift;
+        my $self = shift;
+
+        bless $self, $class;
+
+        return $self;
 }
+
+=head2 pureCopy
+
+=over 1
+
+Loop through the match object and return an unblessed scalar version that
+can be sent elsewhere and loaded with the load function.
+
+On error: Returns undef
+
+On success: Returns a unblessed GameState object.
+
+=back
+
+=cut
+
+sub pureCopy {
+        my $self = shift;
+        my $copy;
+
+        foreach my $key (keys %{ $self }) { $copy->{$key} = $self->{$key}; }
+
+        return $copy;
+}
+
+=head2 dump
+
+=over 1
+
+Return the match as a plain scalar that has been outputted through Data::Dumper
+
+On error: Something is very wrong 8)
+
+On success: Returns a Data Dumped scalar of the GameState object.
+
+=back
+
+=cut
+
+sub dump {
+        return Dumper(shift);
+}
+
+=head2 validate
+
+=over 2
+
+Validate the required fields against the current fields in the object, this
+is done automatically if autovalidate => 1 is set.
+
+NOTE: This function cannot fail, it will simply just return 0 (invalid)
+
+On success: Returns 0 or 1 (Invalid or Valid)
+
+=back
+
+=cut
+
+sub validate {
+        my $self = shift;
+
+	foreach my $key ( @{ $self->{required} } ) {
+		return 0 if (!$self->view($key));
+
+		# Ok is there any restraints on this field
+		my $value = $self->view($key);
+
+		if ($self->{restrict}->{$key}) {
+			return 0 if (!isin($value,$self->{restrict}->{$key}));
+		}
+
+		# Ok so this one is valid..
+	}
+
+	$self->{special}->{valid} = 1;
+
+	return 1;
+}
+
+=head2 isValid
+
+=over 1
+
+Return the current validation state.
+
+On error: Returns undef;
+
+On success: Returns 0 or 1 (Invalid or Valid)
+
+=back
+
+=cut
+
+sub isValid {
+	my $self = shift;
+
+	return undef if (!defined $self->{special}->{valid});
+	return undef if ($self->{special}->{valid} !~ m#^0|1$#);
+
+	return $self->{special}->{valid};
+}
+
+=head2 set
+
+=over 1 
+
+Set a variable in the match object. If called without a second parameter
+the current value of the flag will be returned. 
+
+On error: Returns undef;
+
+On success: Returns new value
+
+First set the flag to something:
+
+=back
+
+	$match->set('team1name','Sheffield Wednesday');
+
+	print $match->set('team1name'),"\n"; 
+
+
+=cut
+
+sub set {
+        my $self = shift;
+        my $varName = shift;
+        my $varValue = shift;
+
+        return if (!$varName);
+
+        $self->{var}->{$varName} = $varValue if (defined $varValue);
+
+	$self->validate() if ($self->{options}->{autovalidate});
+
+        return $self->{var}->{$varName} if (defined $self->{var}->{$varName});
+}
+
+=head2 view
+
+=over 1
+
+View a variable stored in the match object (does the same as set without its second parameter but does not trigger a validate call even with autovalidate set)
+
+On error: Returns undef;
+
+On success: Returns value
+
+=back
+
+	print $match->view('name');
+
+=cut
+
+sub view {
+        my $self = shift;
+        my $varName = shift;
+
+	return undef if (!$varName);
+
+        return $self->{var}->{$varName} if (defined $self->{var}->{$varName});
+
+}
+
 
 =head1 AUTHOR
 
+=over 1
+
 Paul G Webster, C<< <daemon at cpan.org> >>
 
+=back 
+
 =head1 BUGS
+
+=over 1
 
 Please report any bugs or feature requests to C<bug-app-betting-toolkit-gamestate at rt.cpan.org>, or through
 the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=App-Betting-Toolkit-GameState>.  I will be notified, and then you'll
 automatically be notified of progress on your bug as I make changes.
 
-
+=back
 
 
 =head1 SUPPORT
@@ -128,255 +394,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 =cut
 
-sub new {
-        my $class = shift;
-
-        my $self = {
-                required                =>      [ qw(name bookie link state type found game) ],
-                stateAllowed            =>      [ qw(complete active suspended) ],
-                typeAllowed             =>      [ qw(favourite teams) ],
-                match                   =>      {
-                        odds            =>      [],
-                },
-        };
-
-        bless $self, $class;
-    return $self;
-}
-
-sub load {
-        my $class = shift;
-        my $self = shift;
-
-        bless $self, $class;
-
-        return $self;
-}
-
-sub isValid {
-        my $self = shift;
-
-        foreach my $key ( @{ $self->{required} } ) {
-                return 0 if (!$self->{match}->{$key});
-        }
-
-        # Additional checks based on type
-        return 0 if (!$self->{match}->{type});
-
-        if ($self->{match}->{type} eq 'favourite') {
-                # then we should only have one team and one set of odds
-                return 0 if (
-                        (!$self->{match}->{odds}->[0]) ||
-                        (scalar( @{ $self->{match}->{odds} }) != 1) ||
-                        (!$self->{match}->{odds}->[0]->{name}) ||
-                        (!$self->{match}->{odds}->[0]->{odds})
-                );
-        } else {
-                return 0 if (
-                        (scalar( @{ $self->{match}->{odds} }) < 2)
-                );
-                foreach my $oddsSet ( @{ $self->{match}->{odds} } ) {
-                        next if ( ($oddsSet->{name}) && ($oddsSet->{odds}) );
-                        return 0;
-                }
-        }
-
-        return 1;
-}
-
-sub dump {
-        return Dumper(shift);
-}
-
-sub teamscore {
-        my $self = shift;
-        my $teamid = shift;
-
-        return if ($teamid !~ m#^\d+$#);
-
-        $teamid--;
-
-        return $self->{match}->{odds}->[$teamid]->{score} if ($self->{match}->{odds}->[$teamid]);
-        return;
-}
-
-sub teamodds {
-        my $self = shift;
-        my $team = shift;
-
-        return if ($team !~ m#^\d+$#);
-
-        $team--;
-
-        return $self->{match}->{odds}->[$team]->{odds} if ($self->{match}->{odds}->[$team]);
-        return;
-}
-
-sub teamname {
-        my $self = shift;
-        my $team = shift;
-
-        return "" if ($team !~ m#^\d+$#);
-
-        $team--;
-
-        return $self->{match}->{odds}->[$team]->{name} if ($self->{match}->{odds}->[$team]);
-        return;
-}
-
-sub oddsCount {
-        my $self = shift;
-
-        return scalar( @{ $self->{match}->{odds} } ) if ($self->{match}->{odds});
-
-        return 0;
-}
-sub pureCopy {
-        my $self = shift;
-        my $copy;
-
-        foreach my $key (keys %{ $self }) { $copy->{$key} = $self->{$key}; }
-
-        return $copy;
-}
-
-sub game {
-        my $self = shift;
-        my $newState = shift;
-
-        if ($newState) {
-                $self->{match}->{game} = $newState;
-        }
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{game} if ($self->{match}->{game});
-}
-
-sub unique {
-        my $self = shift;
-        my $newName = shift;
-
-        $self->{match}->{unique} = $newName if ($newName);
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{unique} if ($self->{match}->{unique});
-}
-
-
-sub score {
-        my $self = shift;
-        my $newName = shift;
-
-        if ($newName) {
-                return if ($newName !~ m#^\d\s+-\s+\d+$#);
-                $self->{match}->{score} = $newName;
-        }
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{score} if ($self->{match}->{score});
-}
-
-sub var {
-        my $self = shift;
-        my $varName = shift;
-        my $varValue = shift;
-
-        return if (!$varName);
-
-        $self->{var}->{$varName} = $varValue if (defined $varValue);
-
-        return $self->{var}->{$varName} if (defined $self->{var}->{$varName});
-}
-
-sub found {
-        my $self = shift;
-        my $newName = shift;
-
-        $self->{match}->{found} = $newName if ($newName);
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{found} if ($self->{match}->{found});
-}
-
-sub name {
-        my $self = shift;
-        my $newName = shift;
-
-        $self->{match}->{name} = $newName if ($newName);
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{name} if ($self->{match}->{name});
-}
-
-sub addOdds {
-        my $self = shift;
-        my $team = shift;
-
-        push @{ $self->{match}->{odds} },$team;
-
-        # Could probably check if type had been set and validate against it
-
-        $self->{valid} = $self->isValid();
-
-        return 0;
-}
-
-sub bookie {
-        my $self = shift;
-        my $newBookie = shift;
-
-        $self->{match}->{bookie} = $newBookie if ($newBookie);
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{bookie} if ($self->{match}->{bookie});
-}
-
-sub link {
-        my $self = shift;
-        my $newLink = shift;
-
-        $self->{match}->{link} = $newLink if ($newLink);
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{link} if ($self->{match}->{link});
-}
-
-sub state {
-        my $self = shift;
-        my $newState = shift;
-
-        if ($newState) {
-                return if (!isin($newState,$self->{stateAllowed}));
-                $self->{match}->{state} = $newState;
-        }
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{state} if ($self->{match}->{state});
-}
-
-
-sub type {
-        my $self = shift;
-        my $newType = shift;
-
-        if ($newType) {
-                return if (!isin($newType,$self->{typeAllowed}));
-                $self->{match}->{type} = $newType;
-        }
-
-        $self->{valid} = $self->isValid();
-
-        return $self->{match}->{type} if ($self->{match}->{type});
-}
-
 sub isin {
         my $test = shift;
         my $array = shift;
@@ -387,16 +404,6 @@ sub isin {
         }
 
         return 0;
-}
-
-sub complete {
-        my $self = shift;
-
-        foreach my $test ( @{ $self->{required} } ) {
-                return 0 if (!$self->{$test});
-        }
-
-        return 1;
 }
 
 1; # End of App::Betting::Toolkit::GameState
