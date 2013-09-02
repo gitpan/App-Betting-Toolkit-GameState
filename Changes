@@ -8,3 +8,10 @@ Revision history for App-Betting-Toolkit-GameState
 
 0.03	20-08-2013
 	Updated documentation, and updated the code to auto validate
+
+0.04	20-08-2013
+	Updated documentation, to be more sane
+	Added loadable check
+
+0.05	02-09-2013
+	Updated load to shallow copy whatever its passed, instead of copying the refference.

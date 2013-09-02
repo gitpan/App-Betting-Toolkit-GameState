@@ -6,18 +6,27 @@ use strict;
 use warnings;
 
 use Data::Dumper;
+use Try::Tiny;
 
 =head1 NAME
 
+=over 1
+
 App::Betting::Toolkit::GameState - A GameState object for use with App::Betting::Toolkit
+
+=back
 
 =head1 VERSION
 
-Version 0.03
+=over 1
+
+Version 0.05
+
+=back
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.05';
 
 
 =head1 SYNOPSIS
@@ -135,17 +144,46 @@ sub load {
         my $class = shift;
         my $self = shift;
 
+	$self = { %$self };
+
         bless $self, $class;
 
         return $self;
+}
+
+=head2 loadable 
+
+=over 1
+
+Check if a passed object will load without error.
+
+On error: return 0
+
+On success: return 1
+
+	if (App::Betting::Toolkit::GameState->loadable($unblessedObject)) {
+		$match = App::Betting::Toolkit::GameState->load($unblessedObject);
+	}
+
+=back
+
+=cut
+
+sub loadable {
+        my $class = shift;
+	my $self = shift;
+
+	try { bless $self, $class }
+	catch { return 0 }
+
+        return 1;
 }
 
 =head2 pureCopy
 
 =over 1
 
-Loop through the match object and return an unblessed scalar version that
-can be sent elsewhere and loaded with the load function.
+Loop through the match object and return an unblessed scalar version that can be sent elsewhere and loaded with the load function.
 
 On error: Returns undef
 
@@ -252,14 +290,11 @@ On error: Returns undef;
 
 On success: Returns new value
 
-First set the flag to something:
-
-=back
-
 	$match->set('team1name','Sheffield Wednesday');
 
 	print $match->set('team1name'),"\n"; 
 
+=back
 
 =cut
 
@@ -287,9 +322,9 @@ On error: Returns undef;
 
 On success: Returns value
 
-=back
-
 	print $match->view('name');
+
+=back
 
 =cut
 
