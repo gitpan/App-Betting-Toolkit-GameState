@@ -1,4 +1,4 @@
-1package App::Betting::Toolkit::GameState;
+package App::Betting::Toolkit::GameState;
 
 use 5.006;
 
@@ -21,13 +21,13 @@ App::Betting::Toolkit::GameState - A GameState object for use with App::Betting:
 
 =over 1
 
-Version 0.06
+Version 0.061
 
 =back
 
 =cut
 
-our $VERSION = '0.06';
+our $VERSION = '0.061';
 
 
 =head1 SYNOPSIS
