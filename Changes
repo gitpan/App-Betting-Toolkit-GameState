@@ -15,3 +15,6 @@ Revision history for App-Betting-Toolkit-GameState
 
 0.05	02-09-2013
 	Updated load to shallow copy whatever its passed, instead of copying the refference.
+
+0.06	03-09-2013
+	Updated load to use dclone for the load.

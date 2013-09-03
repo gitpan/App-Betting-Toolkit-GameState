@@ -1,4 +1,4 @@
-package App::Betting::Toolkit::GameState;
+1package App::Betting::Toolkit::GameState;
 
 use 5.006;
 
@@ -7,6 +7,7 @@ use warnings;
 
 use Data::Dumper;
 use Try::Tiny;
+use Storable qw(dclone);
 
 =head1 NAME
 
@@ -20,13 +21,13 @@ App::Betting::Toolkit::GameState - A GameState object for use with App::Betting:
 
 =over 1
 
-Version 0.05
+Version 0.06
 
 =back
 
 =cut
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 
 =head1 SYNOPSIS
@@ -144,7 +145,7 @@ sub load {
         my $class = shift;
         my $self = shift;
 
-	$self = { %$self };
+	$self = dclone($self);
 
         bless $self, $class;
 
