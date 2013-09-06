@@ -21,13 +21,13 @@ App::Betting::Toolkit::GameState - A GameState object for use with App::Betting:
 
 =over 1
 
-Version 0.061
+Version 0.062
 
 =back
 
 =cut
 
-our $VERSION = '0.061';
+our $VERSION = '0.062';
 
 
 =head1 SYNOPSIS
@@ -311,6 +311,25 @@ sub set {
 	$self->validate() if ($self->{options}->{autovalidate});
 
         return $self->{var}->{$varName} if (defined $self->{var}->{$varName});
+}
+
+=head2 updateTime
+
+=over 1
+
+Update the gamestate objects creation time flag, this is handy for if you are storing a copy of a gamestate object somewhere and you need the time to be accurate.
+
+=back
+
+	$match->updateTime;
+
+=cut
+
+sub updateTime {
+	my $self = shift;
+
+	$self->{special}->{localtime} = time;
+	return $self->{special}->{localtime};
 }
 
 =head2 view

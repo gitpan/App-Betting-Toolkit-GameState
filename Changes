@@ -21,3 +21,6 @@ Revision history for App-Betting-Toolkit-GameState
 
 0.061	03-09-2013
 	Minor typo fixed.
+
+0.062	06-09-2013
+	Added the function: updateTime
